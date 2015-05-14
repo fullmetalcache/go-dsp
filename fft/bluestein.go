@@ -19,7 +19,7 @@ package fft
 import (
 	"math"
 
-	"github.com/mjibson/go-dsp/dsputils"
+	"github.com/fullmetalcache/go-dsp/dsputils"
 )
 
 func getBluesteinFactors(input_len int) ([]complex128, []complex128) {

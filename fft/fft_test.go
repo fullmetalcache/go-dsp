@@ -21,7 +21,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/mjibson/go-dsp/dsputils"
+	"github.com/fullmetalcache/go-dsp/dsputils"
 )
 
 const (
