@@ -59,11 +59,21 @@ func Convolve(x, y []complex128) []complex128 {
 
 	fft_x := FFT(x)
 	fft_y := FFT(y)
+	
+	if len(fft_x) < len(x) || len(fft_y) < len(x){
+		fft_x = nil
+		fft_y = nil
+		var emp []complex128
+		return emp
+	}
 
 	r := make([]complex128, len(x))
 	for i := 0; i < len(r); i++ {
 		r[i] = fft_x[i] * fft_y[i]
 	}
+	
+	fft_x = nil
+	fft_y = nil
 
 	return IFFT(r)
 }
@@ -140,7 +150,7 @@ func computeFFT2(x [][]complex128, fftFunc func([]complex128) []complex128) [][]
 		for j := 0; j < rows; j++ {
 			t[j] = x[j][i]
 		}
-
+		t = nil
 		for n, v := range fftFunc(t) {
 			r[n][i] = v
 		}
@@ -187,7 +197,7 @@ func computeFFTN(m *dsputils.Matrix, fftFunc func([]complex128) []complex128) *d
 
 		r, t = t, r
 	}
-
+	r = nil
 	return t
 }
 

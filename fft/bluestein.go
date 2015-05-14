@@ -18,50 +18,31 @@ package fft
 
 import (
 	"math"
-	"sync"
 
 	"github.com/mjibson/go-dsp/dsputils"
 )
 
-var (
-	bluesteinLock       sync.RWMutex
-	bluesteinFactors    = map[int][]complex128{}
-	bluesteinInvFactors = map[int][]complex128{}
-)
-
 func getBluesteinFactors(input_len int) ([]complex128, []complex128) {
-	bluesteinLock.RLock()
 
-	if hasBluesteinFactors(input_len) {
-		defer bluesteinLock.RUnlock()
-		return bluesteinFactors[input_len], bluesteinInvFactors[input_len]
-	}
+	bluesteinFactors   := map[int][]complex128{}
+	bluesteinInvFactors := map[int][]complex128{}
 
-	bluesteinLock.RUnlock()
-	bluesteinLock.Lock()
-	defer bluesteinLock.Unlock()
+	bluesteinFactors[input_len] = make([]complex128, input_len)
+	bluesteinInvFactors[input_len] = make([]complex128, input_len)
 
-	if !hasBluesteinFactors(input_len) {
-		bluesteinFactors[input_len] = make([]complex128, input_len)
-		bluesteinInvFactors[input_len] = make([]complex128, input_len)
-
-		var sin, cos float64
-		for i := 0; i < input_len; i++ {
-			if i == 0 {
-				sin, cos = 0, 1
-			} else {
-				sin, cos = math.Sincos(math.Pi / float64(input_len) * float64(i*i))
-			}
-			bluesteinFactors[input_len][i] = complex(cos, sin)
-			bluesteinInvFactors[input_len][i] = complex(cos, -sin)
+	var sin, cos float64
+	for i := 0; i < input_len; i++ {
+		if i == 0 {
+			sin, cos = 0, 1
+		} else {
+			sin, cos = math.Sincos(math.Pi / float64(input_len) * float64(i*i))
 		}
+		bluesteinFactors[input_len][i] = complex(cos, sin)
+		bluesteinInvFactors[input_len][i] = complex(cos, -sin)
 	}
+	
 
 	return bluesteinFactors[input_len], bluesteinInvFactors[input_len]
-}
-
-func hasBluesteinFactors(idx int) bool {
-	return bluesteinFactors[idx] != nil
 }
 
 // bluesteinFFT returns the FFT calculated using the Bluestein algorithm.
@@ -90,5 +71,8 @@ func bluesteinFFT(x []complex128) []complex128 {
 		r[i] *= invFactors[i]
 	}
 
+	factors = nil
+	invFactors = nil
+	
 	return r[:lx]
 }

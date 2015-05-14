@@ -22,12 +22,6 @@ import (
 	"sync"
 )
 
-var (
-	radix2Lock    sync.RWMutex
-	radix2Factors = map[int][]complex128{
-		4: {complex(1, 0), complex(0, -1), complex(-1, 0), complex(0, 1)},
-	}
-)
 
 // EnsureRadix2Factors ensures that all radix 2 factors are computed for inputs
 // of length input_len. This is used to precompute needed factors for known
@@ -37,39 +31,26 @@ func EnsureRadix2Factors(input_len int) {
 }
 
 func getRadix2Factors(input_len int) []complex128 {
-	radix2Lock.RLock()
-
-	if hasRadix2Factors(input_len) {
-		defer radix2Lock.RUnlock()
-		return radix2Factors[input_len]
+	radix2Factors := map[int][]complex128{
+		4: {complex(1, 0), complex(0, -1), complex(-1, 0), complex(0, 1)},
 	}
 
-	radix2Lock.RUnlock()
-	radix2Lock.Lock()
-	defer radix2Lock.Unlock()
+	for i, p := 8, 4; i <= input_len; i, p = i<<1, i {
+		if radix2Factors[i] == nil {
+			radix2Factors[i] = make([]complex128, i)
 
-	if !hasRadix2Factors(input_len) {
-		for i, p := 8, 4; i <= input_len; i, p = i<<1, i {
-			if radix2Factors[i] == nil {
-				radix2Factors[i] = make([]complex128, i)
+			for n, j := 0, 0; n < i; n, j = n+2, j+1 {
+				radix2Factors[i][n] = radix2Factors[p][j]
+			}
 
-				for n, j := 0, 0; n < i; n, j = n+2, j+1 {
-					radix2Factors[i][n] = radix2Factors[p][j]
-				}
-
-				for n := 1; n < i; n += 2 {
-					sin, cos := math.Sincos(-2 * math.Pi / float64(i) * float64(n))
-					radix2Factors[i][n] = complex(cos, sin)
-				}
+			for n := 1; n < i; n += 2 {
+				sin, cos := math.Sincos(-2 * math.Pi / float64(i) * float64(n))
+				radix2Factors[i][n] = complex(cos, sin)
 			}
 		}
 	}
 
 	return radix2Factors[input_len]
-}
-
-func hasRadix2Factors(idx int) bool {
-	return radix2Factors[idx] != nil
 }
 
 type fft_work struct {
@@ -89,7 +70,7 @@ func radix2FFT(x []complex128) []complex128 {
 	jobs := make(chan *fft_work, lx)
 	wg := sync.WaitGroup{}
 
-	num_workers := worker_pool_size
+	num_workers := 1
 	if (num_workers) == 0 {
 		num_workers = runtime.GOMAXPROCS(0)
 	}
@@ -149,7 +130,9 @@ func radix2FFT(x []complex128) []complex128 {
 		wg.Wait()
 		r, t = t, r
 	}
-
+	
+	t = nil
+	factors = nil
 	return r
 }
 
